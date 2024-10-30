@@ -36,7 +36,7 @@ This project retrieves Trello cards from a specified column (list) and generates
 1. **Clone the repository**:
 
    ```bash
-   git clone https://github.com/yourusername/your-repo.git
+   git clone https://github.com/adrrf/trello-microreminders-to-pdf.git
    cd your-repo
    ```
 
