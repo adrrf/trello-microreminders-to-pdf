@@ -1,9 +1,11 @@
 import argparse
 import os
+from datetime import datetime
 
 import requests
 from dotenv import load_dotenv
 from markdown_pdf import MarkdownPdf, Section
+from PyPDF2 import PdfMerger
 
 load_dotenv()
 
@@ -48,12 +50,53 @@ def obtain_cards_title_description(cards):
     return result
 
 
+def merge_pdfs(files, output):
+    merger = PdfMerger()
+    for file in files:
+        merger.append(file)
+    # Save the merged PDF
+    merger.write(output)
+    merger.close()
+    print(f"Merged file saved as: {output}")
+
+
 def markdown_to_pdf(title, markdown_string):
     pdf = MarkdownPdf()
     pdf.add_section(Section(markdown_string))
     if not os.path.exists("./outputs"):
         os.makedirs("./outputs")
     pdf.save("./outputs/" + title + ".pdf")
+
+
+def rename_files_by_name(directory):
+    # Listar archivos en el directory
+    archivos = os.listdir(directory)
+
+    # Extraer la fecha del nombre del archivo y ordenarlos
+    archivos_con_fechas = []
+    for archivo in archivos:
+        # Filtrar solo los archivos
+        ruta_completa = os.path.join(directory, archivo)
+        if os.path.isfile(ruta_completa):
+            try:
+                # Extraer la fecha del nombre
+                partes = archivo.split(" ")
+                fecha_str = " ".join(partes[-3:])  # Ejemplo: "Dec 13, 2024"
+                fecha_str = fecha_str.replace(".pdf", "")
+                fecha = datetime.strptime(fecha_str, "%b %d, %Y")
+                archivos_con_fechas.append((archivo, fecha))
+            except ValueError:
+                print(f"No se pudo procesar la fecha en: {archivo}")
+
+    # Ordenar los archivos por la fecha extraída
+    archivos_ordenados = sorted(archivos_con_fechas, key=lambda x: x[1])
+
+    # Renombrar archivos con el prefijo basado en el orden
+    for indice, (archivo, _) in enumerate(archivos_ordenados, start=1):
+        nuevo_nombre = f"{indice:02d}. {archivo}"
+        ruta_actual = os.path.join(directory, archivo)
+        nueva_ruta = os.path.join(directory, nuevo_nombre)
+        os.rename(ruta_actual, nueva_ruta)
 
 
 def main(column_id):
@@ -63,6 +106,11 @@ def main(column_id):
         for title, description in cards_title_description.items():
             if not check_output(title):
                 markdown_to_pdf(title, description)
+        rename_files_by_name("./outputs")
+        merge_pdfs(
+            [f"./outputs/{file}" for file in os.listdir("./outputs")],
+            "./outputs/00.all_planesdiarios.pdf",
+        )
 
 
 if __name__ == "__main__":
